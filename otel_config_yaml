@@ -1,0 +1,105 @@
+extensions:
+  health_check:
+  pprof:
+    endpoint: 0.0.0.0:1777
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+  opencensus:
+
+  # Collect own metrics
+  prometheus:
+    config:
+      scrape_configs:
+      - job_name: 'otel-collector'
+        scrape_interval: 10s
+        static_configs:
+        - targets: ['0.0.0.0:8888']
+
+  jaeger:
+    protocols:
+      grpc:
+      thrift_binary:
+      thrift_compact:
+      thrift_http:
+
+  zipkin:
+
+processors:
+  resource:
+    attributes:
+    - key: appdynamics.controller.account
+      action: upsert
+      value: "xxxxx"
+    - key: appdynamics.controller.host
+      action: upsert
+      value: "xxxxxx.saas.appdynamics.com"
+    - key: appdynamics.controller.port
+      action: upsert
+      value: 443
+  batch:
+   timeout: 30s
+   send_batch_size: 90
+
+exporters:
+  logging:
+    logLevel: info
+  otlphttp/appd:
+    endpoint: "https://fra-sls-agent-api.saas.appdynamics.com"
+    headers: {"x-api-key": "xxxxxxxxxxxx"}
+    tls:
+      insecure: true
+  otlp/elastic:
+    endpoint: "xxxx:8200"
+    tls:
+      insecure: true
+  jaeger:
+    endpoint: "xxxxxxx:24250"
+    tls:
+      insecure: true
+  zipkin:
+    endpoint: "http://xxxxxxx:39411/api/v2/spans"
+    tls:
+      insecure: true
+  otlphttp/dyna:
+    endpoint: "https://dyb16319.live.dynatrace.com/api/v2/otlp"
+    headers: {Authorization: "Api-Token xxxxxxxxxxx"}
+    tls:
+      insecure: true
+  otlphttp:
+    endpoint: "https://api.honeycomb.io:443"
+    headers:
+      "x-honeycomb-team": "xxxxxxxxxxx"
+    tls:
+     insecure: true
+  otlp:
+    endpoint: "xxxxxxxx:4317"
+    tls:
+      insecure: true
+
+service:
+
+  pipelines:
+
+    traces:
+      receivers: [otlp, opencensus, jaeger, zipkin]
+      processors: [resource,batch]
+      exporters: [logging,otlp/elastic,jaeger,zipkin,otlphttp/appd,otlphttp,otlp]
+
+    traces/dyna:
+      receivers: [otlp]
+      processors: []
+      exporters: [otlphttp/dyna]
+
+    metrics:
+      receivers: [otlp, opencensus, prometheus]
+      #processors: [batch]
+      exporters: [logging,otlp/elastic,otlphttp/appd,otlphttp/dyna,otlphttp,otlp]
+
+  extensions: [health_check, pprof, zpages]
