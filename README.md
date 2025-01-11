@@ -7,3 +7,4 @@ In this setup both python scripts and the Opentelemetry collector runs on the sa
 **Python version:** Python 3.8.7  
 
 
+test
