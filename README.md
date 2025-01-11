@@ -8,3 +8,4 @@ In this setup both python scripts and the Opentelemetry collector runs on the sa
 
 
 test
+tets2
